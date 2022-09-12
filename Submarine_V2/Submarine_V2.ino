@@ -21,7 +21,7 @@
 MPU6050 mpu;
 
 
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
+#define INTERRUPT_PIN 12  // use pin 2 on Arduino Uno & most boards
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool blinkState = false;
 
@@ -98,22 +98,24 @@ struct str_main_program{
 
 str_main_program main_program[2] = {
                                       {
-                                        6, {{4000, 0.0, 200},
+                                        8, {{3000, 0.0, 230},
+                                            {1000, 0.0, 230},
                                             {500,180.0, 180},
-                                            {5000,180.0, 0},
-                                            {4000,180.0, 200},
+                                            {7000,180.0, 0},
+                                            {3000,180.0, 230},
+                                            {1000,180.0, 230},
                                             {500,0.0, 180},
-                                            {5000,0.0, 0}}
+                                            {7000,0.0, 0}}
                                       },
                                       {
-                                        8, {{3000, 0.0, 150},
-                                            {3000, 270.0, 150},
-                                            {3000, 180.0, 150},
-                                            {3000, 90.0, 150},
-                                            {3000, 0.0, 150},
-                                            {3000, 270.0, 150},
-                                            {3000, 180.0, 150},
-                                            {3000, 90.0, 150}}
+                                        8, {{2000, 0.0, 200},
+                                            {2000, 270.0, 200},
+                                            {2000, 180.0, 200},
+                                            {2000, 90.0, 200},
+                                            {2000, 0.0, 200},
+                                            {2000, 270.0, 200},
+                                            {2000, 180.0, 200},
+                                            {2000, 90.0, 200}}
                                       }
                                     }; 
 
@@ -127,7 +129,6 @@ int program_index = 0;
 #define MOTOR_ENABLED
 
 void ExecuteProgram(void);
-void ExecuteProgram2(void);
 void UpdateMPUData(void);
 void ExecutePID(void);
 void UpdateMotorPower(void);
@@ -165,10 +166,7 @@ void setup() {
       digitalWrite(LED_PIN, LOW);
       delay(100);
     }
-    //analogWrite(MOTOR_R_PIN, 200);  
-    //analogWrite(MOTOR_L_PIN, 200);  
-    //digitalWrite(MOTOR_R_PIN, HIGH);
-    //delay(30000000);
+//    delay(300000);
     
     time1 = micros(); //Start counting time in milliseconds
     UpdateTimer = millis(); 
@@ -193,14 +191,15 @@ void loop() {
       elapsedTime = (time1 - timePrev)/1000.0 ;  
 
 
-      //ExecuteProgram();
       ExecuteProgram2();
       UpdateMPUData();
       ExecutePID();
       UpdateMotorPower(); 
 
 #ifdef SERIAL_ENABLED
-      Serial.print(program_index );
+      
+ 
+      Serial.print(current_step );
       Serial.print(", " );
       Serial.print(desired_angle );
       //Serial.print(", " );
@@ -216,6 +215,7 @@ void loop() {
       Serial.print(motor_Power_L );
       Serial.print(", " );
       Serial.println(motor_Power_R );
+   
 #endif      
       delay(5);
     } 
@@ -250,7 +250,7 @@ void ExecuteProgram2(void)
 { 
   if( is_prog_running == true )
   {
-    if( millis() - step_timer >= 1000)
+    if( millis() - step_timer >= 2000)
     {
       int rand_angle = random(0, possible_angles_count+1); 
       current_step++;
@@ -265,6 +265,7 @@ void ExecuteProgram2(void)
     } 
   } 
 }
+
 
 ///////////////////////////////////////////////////////////////////////////
 /////////////////////////////  UpdateMPUData  /////////////////////////////
@@ -363,16 +364,17 @@ void UpdateMotorPower(void)
 
   if( Total_angleY > 130.0 || Total_angleY < -130.0)
   {
+    //Serial.println("E1");
     //Serial.print("OFF, " );
     digitalWrite(MOTOR_L_PIN, LOW);
     digitalWrite(MOTOR_R_PIN, LOW);
     if( is_prog_running == true )
     {
-      //Serial.println("OFFFFFFFFF");
+      Serial.println("OFFFFFFFFF");
       is_prog_running = false;
-      current_step = 0;
-      digitalWrite(LED_PIN, LOW);
+      current_step = 0; 
     }
+     digitalWrite(LED_PIN, LOW);
     current_position = 1;
   }
   else if( is_prog_running == true )
@@ -409,7 +411,6 @@ void UpdateMotorPower(void)
     digitalWrite(MOTOR_R_PIN, LOW);
   }
 }
-
 ///////////////////////////////////////////////////////////////////////////
 /////////////////////////////  MPUInit  ///////////////////////////////////
 void MPUInit(void)
@@ -442,7 +443,7 @@ void MPUInit(void)
   // verify connection
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-
+  //mpu.setSleepEnabled(false);
   // wait for ready
   //Serial.println(F("\nSend any character to begin DMP programming and demo: "));
   //while (Serial.available() && Serial.read()); // empty buffer
@@ -454,16 +455,11 @@ void MPUInit(void)
   devStatus = mpu.dmpInitialize();
 
   // supply your own gyro offsets here, scaled for min sensitivity
-//  mpu.setXGyroOffset(220);
-//  mpu.setYGyroOffset(76);
-//  mpu.setZGyroOffset(-85);
-//  mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
-   mpu.setXGyroOffset(51);
-  mpu.setYGyroOffset(8);
-  mpu.setZGyroOffset(21);
-  mpu.setXAccelOffset(1150);
-  mpu.setYAccelOffset(-50);
-  mpu.setZAccelOffset(1060);
+  mpu.setXGyroOffset(220);
+  mpu.setYGyroOffset(76);
+  mpu.setZGyroOffset(-85);
+  mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+  
   // make sure it worked (returns 0 if so)
   if (devStatus == 0) {
       // Calibration Time: generate offsets and calibrate our MPU6050
